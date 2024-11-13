@@ -7,8 +7,6 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-app.use(express.static("public"));
-
 // Conectar ao Redis
 const redisClient = redis.createClient({
   url: 'redis://localhost:6379' // substitua pelo URL do seu Redis se for diferente
@@ -18,7 +16,6 @@ redisClient.on("error", (err) => {
   console.error("Erro ao conectar ao Redis:", err);
 });
 
-// Conectar ao Redis com async
 async function connectRedis() {
   try {
     await redisClient.connect();
@@ -77,13 +74,24 @@ io.on("connection", async (socket) => {
     }
   });
 
+  // Deleta uma tarefa
+  socket.on("delete-task", async (task) => {
+    try {
+      await redisClient.lRem("tarefas", 1, task); // Remove uma ocorrência da tarefa
+      const updatedTasks = await redisClient.lRange("tarefas", 0, -1);
+      io.emit("update-tasks", updatedTasks); // Atualiza a lista para todos os clientes
+    } catch (err) {
+      console.error("Erro ao deletar tarefa no Redis:", err);
+    }
+  });
+
   socket.on("disconnect", () => {
     console.log("Cliente desconectado");
   });
 });
 
 // Iniciar o servidor
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });

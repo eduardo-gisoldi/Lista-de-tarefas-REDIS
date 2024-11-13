@@ -30,6 +30,9 @@
     }
 
     .task {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       background-color: #fff;
       padding: 10px;
       margin: 5px 0;
@@ -58,6 +61,15 @@
     button:hover {
       background-color: #45a049;
     }
+
+    .delete-btn {
+      background-color: #f44336;
+      padding: 5px 10px;
+    }
+
+    .delete-btn:hover {
+      background-color: #e53935;
+    }
   </style>
 </head>
 <body>
@@ -66,7 +78,7 @@
   <button id="add-task-btn">Adicionar Tarefa</button>
   <ul id="task-list"></ul>
 
-  <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
 
@@ -82,13 +94,25 @@
       }
     });
 
-    // Recebe a lista atualizada de tarefas do servidor
+    // Atualiza a lista de tarefas quando uma nova tarefa é adicionada ou removida
     socket.on("update-tasks", (tasks) => {
       taskList.innerHTML = ''; // Limpa a lista
-      tasks.forEach(task => {
+      tasks.forEach((task) => {
         const li = document.createElement("li");
         li.className = "task";
-        li.textContent = task;
+
+        const taskText = document.createElement("span");
+        taskText.textContent = task;
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "delete-btn";
+        deleteBtn.textContent = "Excluir";
+        deleteBtn.addEventListener("click", () => {
+          socket.emit("delete-task", task); // Envia a tarefa para ser deletada ao servidor
+        });
+
+        li.appendChild(taskText);
+        li.appendChild(deleteBtn);
         taskList.appendChild(li);
       });
     });
