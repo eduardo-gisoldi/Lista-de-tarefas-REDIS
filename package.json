@@ -1,0 +1,18 @@
+{
+  "name": "lista-de-tarefas-redis",
+  "version": "1.0.0",
+  "description": "Aplicação simples usando node.js para criar uma lista de tarefas compartilhada usando o banco de dados REDIS. Usada para uma apresentação da faculdade.",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.21.1",
+    "redis": "^4.7.0",
+    "socket.io": "^4.8.1"
+  }
+}

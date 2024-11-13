@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lista de Tarefas</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background-color: #f4f4f4;
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    #task-list {
+      list-style-type: none;
+      padding: 0;
+      margin-top: 20px;
+      width: 80%;
+      max-width: 400px;
+    }
+
+    .task {
+      background-color: #fff;
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 5px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    input[type="text"] {
+      padding: 10px;
+      margin: 10px 0;
+      width: 80%;
+      max-width: 300px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      background-color: #4CAF50;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+<body>
+  <h1>Lista de Tarefas</h1>
+  <input id="task-input" type="text" placeholder="Adicione uma tarefa...">
+  <button id="add-task-btn">Adicionar Tarefa</button>
+  <ul id="task-list"></ul>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    const taskInput = document.getElementById("task-input");
+    const addTaskBtn = document.getElementById("add-task-btn");
+    const taskList = document.getElementById("task-list");
+
+    addTaskBtn.addEventListener("click", () => {
+      const task = taskInput.value.trim();
+      if (task) {
+        socket.emit("add-task", task);
+        taskInput.value = '';
+      }
+    });
+
+    // Atualiza a lista de tarefas quando uma nova tarefa é adicionada
+    socket.on("update-tasks", (tasks) => {
+      taskList.innerHTML = ''; // Limpa a lista
+      tasks.forEach(task => {
+        const li = document.createElement("li");
+        li.className = "task";
+        li.textContent = task;
+        taskList.appendChild(li);
+      });
+    });
+  </script>
+</body>
+</html>
