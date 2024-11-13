@@ -66,7 +66,7 @@
   <button id="add-task-btn">Adicionar Tarefa</button>
   <ul id="task-list"></ul>
 
-  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
   <script>
     const socket = io();
 
@@ -77,12 +77,12 @@
     addTaskBtn.addEventListener("click", () => {
       const task = taskInput.value.trim();
       if (task) {
-        socket.emit("add-task", task);
-        taskInput.value = '';
+        socket.emit("add-task", task); // Envia a nova tarefa para o servidor
+        taskInput.value = ''; // Limpa o campo de entrada
       }
     });
 
-    // Atualiza a lista de tarefas quando uma nova tarefa é adicionada
+    // Recebe a lista atualizada de tarefas do servidor
     socket.on("update-tasks", (tasks) => {
       taskList.innerHTML = ''; // Limpa a lista
       tasks.forEach(task => {

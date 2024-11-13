@@ -7,64 +7,74 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
+app.use(express.static("public"));
+
 // Conectar ao Redis
-const redisClient = redis.createClient();
+const redisClient = redis.createClient({
+  url: 'redis://localhost:6379' // substitua pelo URL do seu Redis se for diferente
+});
 
 redisClient.on("error", (err) => {
   console.error("Erro ao conectar ao Redis:", err);
 });
 
-// Inicializar a lista de tarefas (caso não exista no Redis)
-redisClient.lrange("tarefas", 0, -1, (err, tasks) => {
-  if (err) {
-    console.error("Erro ao buscar tarefas do Redis:", err);
-  } else if (tasks.length === 0) {
-    // Se não houver tarefas, adiciona tarefas iniciais
-    const tarefasIniciais = [
-      "Lavar a louça",
-      "Passar o aspirador",
-      "Limpar o banheiro",
-      "Organizar as compras",
-      "Cozinhar o almoço"
-    ];
-    tarefasIniciais.forEach(task => {
-      redisClient.lpush("tarefas", task);
-    });
+// Conectar ao Redis com async
+async function connectRedis() {
+  try {
+    await redisClient.connect();
+    console.log("Conectado ao Redis com sucesso.");
+  } catch (err) {
+    console.error("Erro ao conectar ao Redis:", err);
   }
-});
+}
+connectRedis();
+
+// Inicializar a lista de tarefas (caso não exista no Redis)
+async function initializeTasks() {
+  try {
+    const tasks = await redisClient.lRange("tarefas", 0, -1);
+    if (tasks.length === 0) {
+      const tarefasIniciais = [
+        "Lavar a louça",
+        "Passar o aspirador",
+        "Limpar o banheiro",
+        "Organizar as compras",
+        "Cozinhar o almoço"
+      ];
+      for (const task of tarefasIniciais) {
+        await redisClient.rPush("tarefas", task);
+      }
+    }
+  } catch (err) {
+    console.error("Erro ao buscar ou adicionar tarefas no Redis:", err);
+  }
+}
+initializeTasks();
 
 // Configurar o diretório estático para o frontend
 app.use(express.static("public"));
 
 // Socket.io para comunicação em tempo real
-io.on("connection", (socket) => {
+io.on("connection", async (socket) => {
   console.log("Novo cliente conectado");
 
   // Envia a lista de tarefas quando um novo cliente se conecta
-  redisClient.lrange("tarefas", 0, -1, (err, tasks) => {
-    if (err) {
-      console.error("Erro ao buscar tarefas do Redis:", err);
-    } else {
-      socket.emit("update-tasks", tasks);
-    }
-  });
+  try {
+    const tasks = await redisClient.lRange("tarefas", 0, -1);
+    socket.emit("update-tasks", tasks);
+  } catch (err) {
+    console.error("Erro ao buscar tarefas do Redis:", err);
+  }
 
   // Adiciona uma nova tarefa
-  socket.on("add-task", (task) => {
-    redisClient.lpush("tarefas", task, (err) => {
-      if (err) {
-        console.error("Erro ao adicionar tarefa no Redis:", err);
-      } else {
-        // Envia a lista atualizada para todos os clientes
-        redisClient.lrange("tarefas", 0, -1, (err, tasks) => {
-          if (err) {
-            console.error("Erro ao buscar tarefas do Redis:", err);
-          } else {
-            io.emit("update-tasks", tasks);
-          }
-        });
-      }
-    });
+  socket.on("add-task", async (task) => {
+    try {
+      await redisClient.rPush("tarefas", task);
+      const updatedTasks = await redisClient.lRange("tarefas", 0, -1);
+      io.emit("update-tasks", updatedTasks);
+    } catch (err) {
+      console.error("Erro ao adicionar ou buscar tarefas no Redis:", err);
+    }
   });
 
   socket.on("disconnect", () => {
@@ -73,7 +83,7 @@ io.on("connection", (socket) => {
 });
 
 // Iniciar o servidor
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 server.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
